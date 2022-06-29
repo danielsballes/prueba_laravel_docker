@@ -183,6 +183,7 @@ class RecipeController extends Controller
             
             $stock = Ingrediente::orderBy('id', 'desc')->first();
             $arrayStock = json_decode($stock->json, true);
+            $arrayStockAux = $arrayStock;
 
             foreach ($pedidos as $pedido) {
                 $faltantes = false;
@@ -191,18 +192,22 @@ class RecipeController extends Controller
                 $ingredientes = json_decode($pedido->ingredientes, true);
                 
                 foreach ($ingredientes as $nombre => $cantidad) {
-                    if ($arrayStock[$nombre] >= $cantidad) {
-                        $arrayStock[$nombre] -= $cantidad;
+                    if ($arrayStockAux[$nombre] >= $cantidad) {
+                        $arrayStockAux[$nombre] -= $cantidad;
                     } else {
                         array_push($faltantesArray, $nombre);
                         $faltantes = true;
                     }
                 }
 
+                $stockQuery = new Ingrediente();
+
                 if (!$faltantes) {
                     $pedido->activo = 0;
                     $pedido->save();
                     
+                    $stockQuery->json = json_encode($arrayStockAux);
+
                     $preparados++;
                 } else {
                     foreach ($faltantesArray as $faltante) {
@@ -218,10 +223,10 @@ class RecipeController extends Controller
                     }
 
                     $encolados++;
+
+                    $stockQuery->json = json_encode($arrayStock);
                 }
-                
-                $stockQuery = new Ingrediente();
-                $stockQuery->json = json_encode($arrayStock);
+
                 $stockQuery->save();
             }
 
